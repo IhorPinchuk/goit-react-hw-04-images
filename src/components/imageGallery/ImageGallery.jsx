@@ -1,114 +1,98 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import ImageGalleryItem from 'components/imageGalleryItem/ImageGalleryItem';
 import { fetchImages } from '../../services/images-api';
 import css from './ImageGallery.module.css';
 import ErrorGaleryImages from 'components/errorGaleryImages/ErrorGaleryImages';
 import Loader from 'components/loader/Loader';
 import { Button } from 'components/button/Button';
-import Modal from 'components/modal/Modal';
+import { Modal } from 'components/modal/Modal';
 
-export default class ImageGallery extends Component {
-  state = {
-    images: [],
-    totalHits: null,
-    error: null,
-    status: 'idle',
-    page: 1,
-    showModal: false,
-    modalImgUrl: '',
-    modalAlt: '',
+export const ImageGallery = ({ imageName }) => {
+  const [images, setImages] = useState([]);
+  const [totalHits, setTotalHits] = useState(null);
+  const [error, setError] = useState(null);
+  const [status, setStatus] = useState('idle');
+  const [page, setPage] = useState(1);
+  const [showModal, setShowModal] = useState(false);
+  const [modalImgUrl, setModalImgUrl] = useState('');
+  const [modalAlt, setModalAlt] = useState('');
+
+  useEffect(() => {
+    if (!imageName) {
+      return;
+    }
+
+    setPage(1);
+    setStatus('pending');
+
+    fetchImages(imageName, 1)
+      .then(images => {
+        setImages(images.hits);
+        setTotalHits(images.totalHits);
+        setStatus('resolved');
+      })
+      .catch(error => {
+        setError(error);
+        setStatus('rejected');
+      });
+  }, [imageName]);
+
+  const handleClickLoadMore = async () => {
+    setPage(page + 1);
+
+    await fetchImages(imageName, page + 1)
+      .then(nextImages => {
+        setImages([...images, ...nextImages.hits]);
+      })
+      .catch(error => {
+        setError(error);
+        setStatus('rejected');
+      });
   };
 
-  async componentDidUpdate(prevProps, prevState) {
-    const prevName = prevProps.imageName;
-    const nextName = this.props.imageName;
+  const handleOpenModal = e => {
+    setShowModal(true);
+    setModalImgUrl(e.target.id);
+    setModalAlt(e.target.alt);
+  };
 
-    if (prevName !== nextName) {
-      this.setState({ page: 1, status: 'pending' });
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setModalImgUrl('');
+    setModalAlt('');
+  };
 
-      await fetchImages(nextName, 1)
-        .then(images =>
-          this.setState({
-            images: images.hits,
-            status: 'resolved',
-            totalHits: images.totalHits,
-          })
-        )
-        .catch(error => this.setState({ error, status: 'rejected' }));
-    }
+  if (status === 'pending') {
+    return <Loader />;
   }
 
-  handleClickLoadMore = async () => {
-    this.setState(prevState => {
-      return { page: prevState.page + 1 };
-    });
-
-    const nextName = this.props.imageName;
-    const page = this.state.page + 1;
-    await fetchImages(nextName, page)
-      .then(images =>
-        this.setState(prevState => {
-          return {
-            images: [...prevState.images, ...images.hits],
-          };
-        })
-      )
-      .catch(error => this.setState({ error, status: 'rejected' }));
-  };
-
-  handleOpenModal = e => {
-    this.setState({
-      showModal: true,
-      modalImgUrl: e.target.id,
-      modalAlt: e.target.alt,
-    });
-  };
-
-  handleCloseModal = () => {
-    this.setState({
-      showModal: false,
-      modalImgUrl: '',
-      modalAlt: '',
-    });
-  };
-
-  render() {
-    const { error, images, status, showModal } = this.state;
-
-    if (status === 'pending') {
-      return <Loader />;
-    }
-
-    if (status === 'rejected') {
-      return <ErrorGaleryImages message={error.message} />;
-    }
-
-    if (status === 'resolved') {
-      return (
-        <>
-          <ul className={css.image_gallery}>
-            {images &&
-              images.map(({ webformatURL, tags, largeImageURL }) => (
-                <ImageGalleryItem
-                  key={webformatURL}
-                  smallImgUrl={webformatURL}
-                  tag={tags}
-                  bigImgUrl={largeImageURL}
-                  onClick={this.handleOpenModal}
-                />
-              ))}
-          </ul>
-          {this.state.images.length < this.state.totalHits && (
-            <Button onClick={this.handleClickLoadMore} />
-          )}
-
-          {showModal && (
-            <Modal onClose={this.handleCloseModal}>
-              <img src={this.state.modalImgUrl} alt={this.state.modalAlt} />
-            </Modal>
-          )}
-        </>
-      );
-    }
+  if (status === 'rejected') {
+    return <ErrorGaleryImages message={error.message} />;
   }
-}
+
+  if (status === 'resolved') {
+    return (
+      <>
+        <ul className={css.image_gallery}>
+          {images &&
+            images.map(({ webformatURL, tags, largeImageURL }) => (
+              <ImageGalleryItem
+                key={webformatURL}
+                smallImgUrl={webformatURL}
+                tag={tags}
+                bigImgUrl={largeImageURL}
+                onClick={handleOpenModal}
+              />
+            ))}
+        </ul>
+        {images.length < totalHits && <Button onClick={handleClickLoadMore} />}
+
+        {showModal && (
+          <Modal onClose={handleCloseModal}>
+            <img src={modalImgUrl} alt={modalAlt} />
+          </Modal>
+        )}
+      </>
+    );
+  }
+};
