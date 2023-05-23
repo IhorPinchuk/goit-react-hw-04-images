@@ -3,7 +3,7 @@ import ImageGalleryItem from 'components/imageGalleryItem/ImageGalleryItem';
 import { fetchImages } from '../../services/images-api';
 import css from './ImageGallery.module.css';
 import ErrorGaleryImages from 'components/errorGaleryImages/ErrorGaleryImages';
-import Loader from 'components/loader/Loader';
+import {Loader} from 'components/loader/Loader';
 import { Button } from 'components/button/Button';
 import { Modal } from 'components/modal/Modal';
 
@@ -16,6 +16,7 @@ export const ImageGallery = ({ imageName }) => {
   const [showModal, setShowModal] = useState(false);
   const [modalImgUrl, setModalImgUrl] = useState('');
   const [modalAlt, setModalAlt] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (!imageName) {
@@ -39,10 +40,12 @@ export const ImageGallery = ({ imageName }) => {
 
   const handleClickLoadMore = async () => {
     setPage(page + 1);
+    setIsLoading(true);
 
     await fetchImages(imageName, page + 1)
       .then(nextImages => {
         setImages([...images, ...nextImages.hits]);
+        setIsLoading(false);
       })
       .catch(error => {
         setError(error);
@@ -92,6 +95,8 @@ export const ImageGallery = ({ imageName }) => {
             <img src={modalImgUrl} alt={modalAlt} />
           </Modal>
         )}
+
+        {isLoading && (<Loader />)}
       </>
     );
   }

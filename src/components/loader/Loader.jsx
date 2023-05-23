@@ -1,16 +1,13 @@
-import loading from './loader.png';
 import css from './Loader.module.css';
+import sprite from './sprite.svg';
 
-export default function Loader() {
+export const Loader = () => {
   return (
     <div className={css.loader_wrapper} role="alert">
-      <img
-        className={css.loader_image}
-        src={loading}
-        width={300}
-        alt="loading"
-      />
+      <svg className={css.loader_image} width={300} height={300}>
+        <use href={sprite + "#icon-loader"}></use>
+      </svg>
       <p className={css.loader_text}>Loading...</p>
     </div>
   );
-}
+};

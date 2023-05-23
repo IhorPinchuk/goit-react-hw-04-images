@@ -10,6 +10,7 @@
 }
 
 .loader_image {
+  fill: rgb(8, 59, 240);  
   animation: spin 1s linear 0s infinite;
 }
 
@@ -25,5 +26,5 @@
 
 .loader_text {
   position: absolute;
-  color: rgb(89, 115, 207);
+  color: rgb(8, 59, 240);
 }
